@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Chat</title>
+<link rel="icon" href="/static/logo.png">
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<script>
+const socket = io();
+window.comunidadActual = "{{comunidad}}";
+</script>
+
+<style>
+
+body{
+font-family:Poppins;
+background:linear-gradient(135deg,#fbbcbf,#ffd6ec,#c2f0ff);
+}
+
+.chat{
+width:650px;
+margin:auto;
+margin-top:40px;
+background:white;
+border-radius:20px;
+box-shadow:0 10px 25px rgba(0,0,0,.15);
+overflow:hidden;
+}
+
+.header{
+background:#e08989;
+color:white;
+padding:15px;
+font-size:18px;
+font-weight:600;
+}
+
+#chat{
+height:420px;
+overflow-y:auto;
+padding:20px;
+background:#fff8f3;
+}
+
+.mensaje{
+padding:10px 15px;
+margin-bottom:10px;
+border-radius:15px;
+max-width:70%;
+}
+
+.yo{
+background:#c2f0ff;
+margin-left:auto;
+}
+
+.otro{
+background:#fbbcbf;
+}
+
+.input{
+display:flex;
+padding:15px;
+gap:10px;
+border-top:1px solid #eee;
+}
+
+input{
+flex:1;
+padding:10px;
+border-radius:20px;
+border:1px solid #ccc;
+}
+
+button{
+background:#e08989;
+border:none;
+color:white;
+padding:10px 20px;
+border-radius:20px;
+cursor:pointer;
+}
+
+button:hover{
+background:#d07070;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="chat">
+
+<div class="header">
+Comunidad: {{comunidad}}
+</div>
+
+<div id="chat"></div>
+
+<div class="input">
+<input id="mensaje" placeholder="Escribe un mensaje...">
+<button onclick="enviar()">Enviar</button>
+</div>
+
+</div>
+
+<audio id="sonido" src="/static/sonido.mp3"></audio>
+
+<script>
+
+const comunidad = "{{comunidad}}";
+
+let usuario = JSON.parse(localStorage.getItem("usuario"));
+
+const chat = document.getElementById("chat");
+const sonido = document.getElementById("sonido");
+const input = document.getElementById("mensaje");
+
+if (!usuario){
+alert("Debes iniciar sesión");
+window.location.href="/login";
+}
+
+if (Notification.permission !== "granted"){
+Notification.requestPermission();
+}
+
+socket.emit("cargar_historial",{comunidad:comunidad});
+
+socket.on("historial",function(mensajes){
+
+chat.innerHTML="";
+
+mensajes.forEach(m=>{
+mostrarMensaje(m);
+});
+
+});
+
+socket.on("message",function(data){
+
+if(data.comunidad !== comunidad) return;
+
+mostrarMensaje(data);
+
+if(data.uid !== usuario.uid){
+
+sonido.play();
+
+if(Notification.permission==="granted"){
+new Notification(data.nombre,{
+body:data.mensaje,
+icon:"/static/logo.png"
+});
+}
+
+}
+
+});
+
+function mostrarMensaje(data){
+    const div = document.createElement("div");
+    div.classList.add("mensaje");
+
+    if(data.uid === usuario.uid){
+        div.classList.add("yo");
+    } else {
+        div.classList.add("otro");
+    }
+
+    // Mostrar nombre, mensaje y hora
+    div.innerHTML = "<b>" + data.nombre + "</b> <small style='color:#666; font-size:0.8em;'>" + data.hora + "</small><br>" + data.mensaje;
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function enviar(){
+
+const mensaje=input.value.trim();
+
+if(mensaje==="") return;
+
+socket.emit("mensaje",{
+
+nombre:usuario.nombre,
+mensaje:mensaje,
+uid:usuario.uid,
+comunidad:comunidad
+
+});
+
+input.value="";
+}
+
+input.addEventListener("keypress",function(e){
+
+if(e.key==="Enter"){
+enviar();
+}
+
+});
+
+</script>
+
+</body>
+</html>

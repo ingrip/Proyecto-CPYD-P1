@@ -1,293 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Plati-cats 💖</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Plati-cats</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
 <style>
+
 body{
-    font-family:'Poppins',sans-serif;
-    background:linear-gradient(135deg,#fbbcbf,#ffd6ec,#c2f0ff);
-    margin:0;
-    overflow:hidden;
+font-family:'Poppins',sans-serif;
+background:linear-gradient(135deg,#fbbcbf,#ffd6ec,#c2f0ff);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+flex-direction:column;
+text-align:center;
 }
 
-body::before{
-    content:"🐾 🐾 🐾 🐾 🐾 🐾 🐾 🐾";
-    position:fixed;
-    font-size:50px;
-    opacity:0.05;
-    width:100%;
-    height:100%;
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-}
-
-#inicio{
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:#ddc7ab;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    z-index:999;
-    transition:opacity .5s ease;
-}
-
-.logo-grande{
-    width:300px;
-    animation:flotar 3s ease-in-out infinite;
+.logo{
+width:260px;
+animation:flotar 3s ease-in-out infinite;
 }
 
 @keyframes flotar{
-    0%,100%{ transform:translateY(0px);}
-    50%{ transform:translateY(-15px);}
+0%,100%{transform:translateY(0);}
+50%{transform:translateY(-15px);}
 }
 
-.btn-empezar{
-    margin-top:40px;
-    padding:12px 35px;
-    border:none;
-    border-radius:30px;
-    font-size:18px;
-    font-weight:600;
-    background:linear-gradient(90deg,#e08989,#dba76d);
-    color:white;
-    transition:.3s;
+h1{
+margin-top:20px;
+font-weight:600;
+color:#333;
 }
 
-.btn-empezar:hover{
-    transform:scale(1.1);
+button{
+margin-top:30px;
+padding:14px 35px;
+border:none;
+border-radius:30px;
+font-size:18px;
+background:linear-gradient(90deg,#e08989,#dba76d);
+color:white;
+cursor:pointer;
+transition:.3s;
 }
 
-
-.chat-container{
-    max-width:750px;
-    margin:auto;
-    margin-top:40px;
-    display:none;
+button:hover{
+transform:scale(1.08);
 }
 
-.card{
-    border:none;
-    border-radius:30px;
-    overflow:hidden;
-}
-
-.card-header{
-    background:#ddc7ab;
-    text-align:center;
-    font-weight:600;
-    font-size:18px;
-    padding:15px;
-}
-
-.chat-body{
-    height:450px;
-    overflow-y:auto;
-    background:#fff8f3;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-}
-
-/* BURBUJAS */
-.mensaje{
-    max-width:75%;
-    padding:12px 18px;
-    border-radius:25px;
-    margin-bottom:12px;
-    animation:fadeIn .3s ease-in-out;
-    position:relative;
-}
-
-/* YO */
-.mensaje.yo{
-    background:#c2f0ff;
-    margin-left:auto;
-}
-
-.mensaje.yo::after{
-    content:"";
-    position:absolute;
-    right:-8px;
-    top:10px;
-    border-left:10px solid #c2f0ff;
-    border-top:10px solid transparent;
-    border-bottom:10px solid transparent;
-}
-
-/* OTRO */
-.mensaje.otro{
-    background:#fbbcbf;
-}
-
-.mensaje.otro::after{
-    content:"";
-    position:absolute;
-    left:-8px;
-    top:10px;
-    border-right:10px solid #fbbcbf;
-    border-top:10px solid transparent;
-    border-bottom:10px solid transparent;
-}
-
-.nombre{
-    font-size:12px;
-    font-weight:600;
-    color:#dba76d;
-}
-
-.hora{
-    font-size:10px;
-    opacity:.6;
-    text-align:right;
-}
-
-.form-control{
-    border-radius:20px;
-    border:2px solid #fbbcbf;
-}
-
-.form-control:focus{
-    border-color:#dba76d;
-    box-shadow:0 0 8px rgba(219,167,109,0.3);
-}
-
-.btn-enviar{
-    background:linear-gradient(90deg,#e08989,#dba76d);
-    border:none;
-    color:white;
-    border-radius:25px;
-    padding:8px 20px;
-    font-weight:600;
-    transition:0.2s;
-}
-
-.btn-enviar:hover{
-    transform:scale(1.05);
-}
-
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(5px);}
-to{opacity:1;transform:translateY(0);}
-}
 </style>
 </head>
 
 <body>
 
-<div id="inicio">
-    <img src="{{ url_for('static', filename='logo.png') }}" class="logo-grande">
-    <button class="btn-empezar" onclick="entrarChat()">Empezar 💬</button>
-</div>
+<img src="{{ url_for('static', filename='logo.png') }}" class="logo">
 
-<div class="chat-container" id="chatContainer">
-<div class="card shadow-lg">
+<h1>Bienvenido a Plati-cats 🐾</h1>
 
-<div class="card-header" id="tituloChat">
-    Plati-cats 
-</div>
-
-<div class="card-body">
-<input type="text" id="nombre" class="form-control mb-2" placeholder="Tu nombre">
-</div>
-
-<div class="chat-body" id="chat"></div>
-<div id="escribiendo" class="px-3" style="font-size:12px;color:#e08989;"></div>
-
-<div class="card-footer">
-<div class="input-group">
-<input type="text" id="mensaje" class="form-control" placeholder="Escribe algo...">
-<button class="btn btn-enviar" onclick="enviarMensaje()">Enviar</button>
-</div>
-</div>
-
-</div>
-</div>
-
-<audio id="sonido" src="{{ url_for('static', filename='sonido.mp3') }}"></audio>
-
-<script>
-var socket = io();
-var miId = null;
-
-function entrarChat(){
-    document.getElementById("inicio").style.opacity="0";
-    setTimeout(()=>{
-        document.getElementById("inicio").style.display="none";
-        document.getElementById("chatContainer").style.display="block";
-        document.body.style.overflow="auto";
-    },500);
-}
-
-socket.on('connect', function(){
-    miId = socket.id;
-});
-
-socket.on('message', function(data){
-
-    var chat = document.getElementById("chat");
-    var div = document.createElement("div");
-    div.classList.add("mensaje");
-
-    if(data.id === miId){
-        div.classList.add("yo");
-    } else{
-        div.classList.add("otro");
-        document.getElementById("sonido").play();
-
-        document.getElementById("tituloChat").innerText = data.nombre;
-    }
-
-    div.innerHTML = `
-        <div class="nombre">${data.nombre}</div>
-        <div>${data.mensaje}</div>
-        <div class="hora">${data.hora}</div>
-    `;
-
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-});
-
-socket.on('escribiendo', function(data){
-    document.getElementById("escribiendo").innerText = data.nombre + " está escribiendo...";
-    setTimeout(()=>{ document.getElementById("escribiendo").innerText = ""; },2000);
-});
-
-function enviarMensaje(){
-    var nombre = document.getElementById("nombre").value || "Anónimo 🐾";
-    var mensaje = document.getElementById("mensaje").value;
-
-    if(mensaje.trim()==="") return;
-
-    socket.emit('mensaje',{
-        id: socket.id,
-        nombre: nombre,
-        mensaje: mensaje
-    });
-
-    document.getElementById("mensaje").value="";
-}
-
-document.getElementById("mensaje").addEventListener("keypress",function(e){
-    if(e.key==="Enter"){
-        enviarMensaje();
-    } else{
-        var nombre = document.getElementById("nombre").value || "Anónimo 🐾";
-        socket.emit('escribiendo',{nombre:nombre});
-    }
-});
-</script>
+<a href="/login">
+<button>Iniciar sesión</button>
+</a>
 
 </body>
 </html>

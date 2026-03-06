@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Login</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<style>
+
+body{
+font-family:Poppins;
+background:#ffd6ec;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+flex-direction:column;
+}
+
+button{
+padding:14px 30px;
+border:none;
+border-radius:25px;
+background:#e08989;
+color:white;
+font-size:18px;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Inicia sesión</h2>
+
+<button onclick="loginGoogle()">Login con Google</button>
+
+<script>
+
+const firebaseConfig = {
+apiKey:"AIzaSyDGDmb6yTyiTuez667sCrS3OquRm_2IXWA",
+authDomain:"plati-cats.firebaseapp.com",
+projectId:"plati-cats"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+function loginGoogle(){
+
+const provider = new firebase.auth.GoogleAuthProvider();
+
+firebase.auth().signInWithPopup(provider)
+.then(result=>{
+
+const user = result.user;
+
+const usuario={
+nombre:user.displayName,
+foto:user.photoURL,
+uid:user.uid
+};
+
+localStorage.setItem("usuario",JSON.stringify(usuario));
+
+window.location="/comunidades";
+
+})
+.catch(err=>alert(err.message));
+
+}
+
+</script>
+
+</body>
+</html>
