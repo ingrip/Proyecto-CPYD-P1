@@ -9,83 +9,82 @@
 <script>
 const socket = io();
 window.comunidadActual = "{{comunidad}}";
+window.chatPrivadoActual = null; // uid del chat privado actual
 </script>
 
 <style>
-
 body{
-font-family:Poppins;
-background:linear-gradient(135deg,#fbbcbf,#ffd6ec,#c2f0ff);
+    font-family:Poppins;
+    background:linear-gradient(135deg,#fbbcbf,#ffd6ec,#c2f0ff);
 }
 
 .chat{
-width:650px;
-margin:auto;
-margin-top:40px;
-background:white;
-border-radius:20px;
-box-shadow:0 10px 25px rgba(0,0,0,.15);
-overflow:hidden;
+    width:650px;
+    margin:auto;
+    margin-top:40px;
+    background:white;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
+    overflow:hidden;
 }
 
 .header{
-background:#e08989;
-color:white;
-padding:15px;
-font-size:18px;
-font-weight:600;
+    background:#e08989;
+    color:white;
+    padding:15px;
+    font-size:18px;
+    font-weight:600;
 }
 
 #chat{
-height:420px;
-overflow-y:auto;
-padding:20px;
-background:#fff8f3;
+    height:420px;
+    overflow-y:auto;
+    padding:20px;
+    background:#fff8f3;
 }
 
 .mensaje{
-padding:10px 15px;
-margin-bottom:10px;
-border-radius:15px;
-max-width:70%;
+    padding:10px 15px;
+    margin-bottom:10px;
+    border-radius:15px;
+    max-width:70%;
 }
 
 .yo{
-background:#c2f0ff;
-margin-left:auto;
+    background:#c2f0ff;
+    margin-left:auto;
 }
 
 .otro{
-background:#fbbcbf;
+    background:#fbbcbf;
 }
 
 .input{
-display:flex;
-padding:15px;
-gap:10px;
-border-top:1px solid #eee;
+    display:flex;
+    padding:15px;
+    gap:10px;
+    border-top:1px solid #eee;
 }
 
 input{
-flex:1;
-padding:10px;
-border-radius:20px;
-border:1px solid #ccc;
+    flex:1;
+    padding:10px;
+    border-radius:20px;
+    border:1px solid #ccc;
 }
 
 button{
-background:#e08989;
-border:none;
-color:white;
-padding:10px 20px;
-border-radius:20px;
-cursor:pointer;
+    background:#e08989;
+    border:none;
+    color:white;
+    padding:10px 20px;
+    border-radius:20px;
+    cursor:pointer;
 }
 
 button:hover{
-background:#d07070;
+    background:#d07070;
 }
-
 </style>
 
 </head>
@@ -94,7 +93,7 @@ background:#d07070;
 
 <div class="chat">
 
-<div class="header">
+<div class="header" id="header-chat">
 Comunidad: {{comunidad}}
 </div>
 
@@ -110,55 +109,50 @@ Comunidad: {{comunidad}}
 <audio id="sonido" src="/static/sonido.mp3"></audio>
 
 <script>
-
 const comunidad = "{{comunidad}}";
-
 let usuario = JSON.parse(localStorage.getItem("usuario"));
-
 const chat = document.getElementById("chat");
 const sonido = document.getElementById("sonido");
 const input = document.getElementById("mensaje");
+const headerChat = document.getElementById("header-chat");
 
 if (!usuario){
-alert("Debes iniciar sesión");
-window.location.href="/login";
+    alert("Debes iniciar sesión");
+    window.location.href="/login";
 }
 
+// pedir permisos para notificaciones
 if (Notification.permission !== "granted"){
-Notification.requestPermission();
+    Notification.requestPermission();
 }
 
-socket.emit("cargar_historial",{comunidad:comunidad});
+// cargar historial
+socket.emit("cargar_historial",{comunidad:comunidad, uid: usuario.uid});
 
 socket.on("historial",function(mensajes){
-
-chat.innerHTML="";
-
-mensajes.forEach(m=>{
-mostrarMensaje(m);
+    chat.innerHTML="";
+    mensajes.forEach(m=>{
+        mostrarMensaje(m);
+    });
 });
 
-});
+// recibir mensaje
+socket.on("message", function(data){
+    // filtrar mensajes de comunidad o privados
+    if(data.comunidad && data.comunidad !== comunidad) return;
+    if(data.privado && !data.usuarios.includes(usuario.uid) && data.uid !== usuario.uid) return;
 
-socket.on("message",function(data){
+    mostrarMensaje(data);
 
-if(data.comunidad !== comunidad) return;
-
-mostrarMensaje(data);
-
-if(data.uid !== usuario.uid){
-
-sonido.play();
-
-if(Notification.permission==="granted"){
-new Notification(data.nombre,{
-body:data.mensaje,
-icon:"/static/logo.png"
-});
-}
-
-}
-
+    if(data.uid !== usuario.uid){
+        sonido.play();
+        if(Notification.permission==="granted"){
+            new Notification(data.nombre,{
+                body:data.mensaje,
+                icon:"/static/logo.png"
+            });
+        }
+    }
 });
 
 function mostrarMensaje(data){
@@ -171,7 +165,6 @@ function mostrarMensaje(data){
         div.classList.add("otro");
     }
 
-    // Mostrar nombre, mensaje y hora
     div.innerHTML = "<b>" + data.nombre + "</b> <small style='color:#666; font-size:0.8em;'>" + data.hora + "</small><br>" + data.mensaje;
 
     chat.appendChild(div);
@@ -179,31 +172,42 @@ function mostrarMensaje(data){
 }
 
 function enviar(){
+    const mensaje = input.value.trim();
+    if(mensaje==="") return;
 
-const mensaje=input.value.trim();
+    // construir data
+    const data = {
+        nombre: usuario.nombre,
+        mensaje: mensaje,
+        uid: usuario.uid
+    };
 
-if(mensaje==="") return;
+    // enviar a comunidad o chat privado
+    if(window.chatPrivadoActual){
+        data.privado = true;
+        data.usuarios = [window.chatPrivadoActual]; // uid del destinatario
+        headerChat.innerText = "Chat privado con " + window.chatPrivadoActual;
+    } else {
+        data.comunidad = comunidad;
+    }
 
-socket.emit("mensaje",{
-
-nombre:usuario.nombre,
-mensaje:mensaje,
-uid:usuario.uid,
-comunidad:comunidad
-
-});
-
-input.value="";
+    socket.emit("mensaje", data);
+    input.value="";
 }
 
 input.addEventListener("keypress",function(e){
-
-if(e.key==="Enter"){
-enviar();
-}
-
+    if(e.key==="Enter"){
+        enviar();
+    }
 });
 
+// funcion para abrir chat privado con otro usuario
+function abrirChatPrivado(uid, nombre){
+    window.chatPrivadoActual = uid;
+    headerChat.innerText = "Chat privado con " + nombre;
+    chat.innerHTML = "";
+    socket.emit("cargar_historial",{uid: usuario.uid});
+}
 </script>
 
 </body>
