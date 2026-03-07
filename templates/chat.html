@@ -81,7 +81,26 @@ button{
     border-radius:20px;
     cursor:pointer;
 }
+#usuarios{
+position:fixed;
+right:20px;
+top:80px;
+background:white;
+padding:15px;
+border-radius:15px;
+width:180px;
+box-shadow:0 5px 15px rgba(0,0,0,.2);
+}
 
+.usuario{
+padding:8px;
+cursor:pointer;
+border-radius:10px;
+}
+
+.usuario:hover{
+background:#ffd6ec;
+}
 button:hover{
     background:#d07070;
 }
@@ -105,9 +124,10 @@ Comunidad: {{comunidad}}
 </div>
 
 </div>
-
+<div id="usuarios"></div>
 <audio id="sonido" src="/static/sonido.mp3"></audio>
 
+<!-- cargar historial privado usando privado_con -->
 <script>
 const comunidad = "{{comunidad}}";
 let usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -121,93 +141,117 @@ if (!usuario){
     window.location.href="/login";
 }
 
-// pedir permisos para notificaciones
+// unirse a salas
+socket.emit("join", { uid: usuario.uid, nombre: usuario.nombre });
+socket.emit("join_comunidad", { comunidad: comunidad });
+
 if (Notification.permission !== "granted"){
     Notification.requestPermission();
 }
 
-// cargar historial
-socket.emit("cargar_historial",{comunidad:comunidad, uid: usuario.uid});
-
-socket.on("historial",function(mensajes){
-    chat.innerHTML="";
-    mensajes.forEach(m=>{
-        mostrarMensaje(m);
-    });
+// cargar historial comunidad al entrar
+socket.emit("cargar_historial", {
+    uid: usuario.uid,
+    comunidad: comunidad
 });
 
-// recibir mensaje
+// mostrar historial
+socket.on("historial", function(mensajes){
+    chat.innerHTML="";
+    mensajes.forEach(m => mostrarMensaje(m));
+});
+
+// recibir mensajes
 socket.on("message", function(data){
-    // filtrar mensajes de comunidad o privados
-    if(data.comunidad && data.comunidad !== comunidad) return;
-    if(data.privado && !data.usuarios.includes(usuario.uid) && data.uid !== usuario.uid) return;
-
-    mostrarMensaje(data);
-
-    if(data.uid !== usuario.uid){
-        sonido.play();
-        if(Notification.permission==="granted"){
-            new Notification(data.nombre,{
-                body:data.mensaje,
-                icon:"/static/logo.png"
-            });
+    if(data.comunidad){
+        // mensaje de comunidad
+        if(data.comunidad === comunidad) agregarMensaje(data);
+        if(data.uid !== usuario.uid) sonido.play();
+    } else if(data.privado){
+        // mensaje privado: solo mostrar si es con el chat abierto
+        if(window.chatPrivadoActual && data.usuarios.includes(window.chatPrivadoActual)){
+            // mostrar mensaje
+            mostrarMensaje(data);
+            // reproducir sonido solo si no soy yo
+            if(data.uid !== usuario.uid) sonido.play();
         }
     }
 });
 
 function mostrarMensaje(data){
+    if(document.getElementById(data.fecha)) return;
+
     const div = document.createElement("div");
+    div.id = data.fecha;
     div.classList.add("mensaje");
 
+    // clase correcta según quién envía
     if(data.uid === usuario.uid){
-        div.classList.add("yo");
+        div.classList.add("yo"); // azul, mensaje mío
     } else {
-        div.classList.add("otro");
+        div.classList.add("otro"); // rosa, mensaje del otro
     }
 
-    div.innerHTML = "<b>" + data.nombre + "</b> <small style='color:#666; font-size:0.8em;'>" + data.hora + "</small><br>" + data.mensaje;
-
+    div.innerHTML = "<b>"+data.nombre+"</b> <small>"+data.hora+"</small><br>"+data.mensaje;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
-
+// enviar mensaje
 function enviar(){
     const mensaje = input.value.trim();
-    if(mensaje==="") return;
+    if(!mensaje) return;
 
-    // construir data
-    const data = {
-        nombre: usuario.nombre,
-        mensaje: mensaje,
-        uid: usuario.uid
-    };
-
-    // enviar a comunidad o chat privado
+    let data;
     if(window.chatPrivadoActual){
-        data.privado = true;
-        data.usuarios = [window.chatPrivadoActual]; // uid del destinatario
-        headerChat.innerText = "Chat privado con " + window.chatPrivadoActual;
+        data = {
+            mensaje,
+            nombre: usuario.nombre,
+            uid: usuario.uid,           // importante para diferenciar
+            privado: true,
+            usuarios: [usuario.uid, window.chatPrivadoActual]
+        };
     } else {
-        data.comunidad = comunidad;
+        data = {
+            tipo: "comunidad",
+            comunidad,
+            mensaje,
+            nombre: usuario.nombre,
+            uid: usuario.uid
+        };
     }
 
     socket.emit("mensaje", data);
     input.value="";
 }
 
-input.addEventListener("keypress",function(e){
-    if(e.key==="Enter"){
-        enviar();
-    }
+input.addEventListener("keypress", function(e){
+    if(e.key==="Enter") enviar();
 });
 
-// funcion para abrir chat privado con otro usuario
+// abrir chat privado
 function abrirChatPrivado(uid, nombre){
     window.chatPrivadoActual = uid;
     headerChat.innerText = "Chat privado con " + nombre;
-    chat.innerHTML = "";
-    socket.emit("cargar_historial",{uid: usuario.uid});
+    chat.innerHTML="";
+    socket.emit("cargar_historial", { uid: usuario.uid, privado_con: uid });
 }
+
+// lista de usuarios
+socket.on("usuarios_activos", function(lista){
+    const cont = document.getElementById("usuarios");
+    cont.innerHTML="<b>Usuarios</b><br>";
+    lista.forEach(u=>{
+        if(u.uid === usuario.uid) return;
+        const div = document.createElement("div");
+        div.className="usuario";
+        div.innerText = u.nombre;
+        div.onclick = ()=>abrirChatPrivado(u.uid,u.nombre);
+        cont.appendChild(div);
+    });
+});
+
+function agregarMensaje(data){ if(window.chatPrivadoActual) return; mostrarMensaje(data); }
+function agregarMensajePrivado(data){ mostrarMensaje(data); }
 </script>
 
 </body>

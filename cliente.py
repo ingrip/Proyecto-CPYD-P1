@@ -32,18 +32,28 @@ def recibir_mensajes(cliente):
             print("Conexión cerrada.")
             cliente.close()
             break
-
 def enviar_mensajes(cliente):
     while True:
         mensaje = input()
         if mensaje.strip() == "":
             continue
-        data = {
-            "mensaje": mensaje,
-            "comunidad": destino if not privado else None,
-            "privado": privado,
-            "usuarios": usuarios_privados if privado else []
-        }
+
+        if privado:
+            data = {
+                "mensaje": mensaje,
+                "nombre": uid, 
+                "privado": True,
+                "usuarios": [uid, usuarios_privados[0]]  
+            }
+        else:
+            # mensaje a la comunidad
+            data = {
+                "tipo": "comunidad",
+                "comunidad": destino,
+                "mensaje": mensaje,
+                "nombre": uid,
+            }
+
         cliente.send(json.dumps(data).encode())
 
 def iniciar_cliente():

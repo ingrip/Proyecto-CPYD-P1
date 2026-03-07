@@ -1,10 +1,9 @@
 from datetime import datetime
 from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 import firebase_admin
 from firebase_admin import credentials, firestore
-from google.protobuf.timestamp_pb2 import Timestamp
-from google.cloud.firestore_v1 import _helpers
+from flask import Flask, render_template, request
 # inicializar firebase
 cred = credentials.Certificate("firebase_key.json")
 firebase_admin.initialize_app(cred)
@@ -12,10 +11,11 @@ db = firestore.client()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+usuarios_activos = {}
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# rutas de la web
+# rutas
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -33,14 +33,13 @@ def chat(comunidad):
     return render_template("chat.html", comunidad=comunidad)
 
 
-# socket: recibir mensaje
+# recibir mensaje
 @socketio.on('mensaje')
 def handle_mensaje(data):
     now = datetime.now()
     data['hora'] = now.strftime("%H:%M")
     data['fecha'] = now.isoformat()
 
-    # mensaje privado: usuarios especificos
     privado = data.get("privado", False)
     usuarios_privados = data.get("usuarios", [])
 
@@ -56,47 +55,83 @@ def handle_mensaje(data):
         "usuarios": usuarios_privados
     })
 
-    # emitir mensaje
     if privado:
-        # enviar solo a los usuarios de la lista + remitente
-        for uid in usuarios_privados + [data.get("uid")]:
-            emit('message', data, room=uid)
+        # emitir solo a los usuarios privados
+        for uid in usuarios_privados:
+            join_room(uid)  # asegurar que estén en la sala
+            socketio.emit("message", data, room=uid)
     else:
-        emit('message', data, broadcast=True)
+        socketio.emit("message", data, to=data["comunidad"])
 
 
-# socket: cargar historial
+# cargar historial
 @socketio.on('cargar_historial')
 def cargar_historial(data):
-    comunidad = data['comunidad']
+    uid = data.get("uid")
+    comunidad = data.get("comunidad")
+    privado_con = data.get("privado_con")  # el uid del chat privado actual
+
     mensajes = []
 
-    docs = db.collection("mensajes") \
-        .where("comunidad", "==", comunidad) \
-        .order_by("fecha") \
-        .limit(50) \
-        .stream()
+    if comunidad:
+        docs = db.collection("mensajes") \
+            .where("comunidad", "==", comunidad) \
+            .order_by("fecha") \
+            .limit(50) \
+            .stream()
+    elif privado_con:
+        # cargar solo mensajes del chat privado actual
+        docs = db.collection("mensajes") \
+            .where("privado", "==", True) \
+            .where("usuarios", "array_contains", uid) \
+            .order_by("fecha") \
+            .limit(50) \
+            .stream()
+    else:
+        docs = []
 
     for doc in docs:
         m = doc.to_dict()
-        # convertir DatetimeWithNanoseconds a string
-        if 'fecha' in m:
-            fecha = m['fecha']
-            if isinstance(fecha, _helpers.Timestamp):
-                # Firestore devuelve un Timestamp, convertir a datetime
-                m['fecha'] = fecha.ToDatetime().isoformat()
-            elif isinstance(fecha, datetime):
-                m['fecha'] = fecha.isoformat()
+        # filtrar solo del chat privado actual
+        if privado_con and m.get("privado"):
+            if privado_con not in m.get("usuarios", []):
+                continue
+        if "fecha" in m:
+            try:
+                m["fecha"] = m["fecha"].isoformat()
+            except:
+                m["fecha"] = str(m["fecha"])
         mensajes.append(m)
 
     emit("historial", mensajes)
-# manejar rooms (para privados)
+
+
+# unirse a sala
+
 @socketio.on('join')
 def join(data):
     uid = data.get("uid")
+    nombre = data.get("nombre")
     if uid:
-        # unir al usuario a su sala privada (su UID)
-        socketio.enter_room(uid)
+        join_room(uid)
+        usuarios_activos[request.sid] = {"uid": uid, "nombre": nombre}  # guardar por socket.id
+    # emitir lista actualizada a todos
+    emit("usuarios_activos", [{"uid": u["uid"], "nombre": u["nombre"]} for u in usuarios_activos.values()], broadcast=True)
+
+@socketio.on('disconnect')
+def disconnect():
+    # eliminar solo al socket que se desconecta
+    if request.sid in usuarios_activos:
+        usuarios_activos.pop(request.sid)
+    # emitir lista actualizada a todos
+    emit("usuarios_activos", [{"uid": u["uid"], "nombre": u["nombre"]} for u in usuarios_activos.values()], broadcast=True)
+
+@socketio.on("join_comunidad")
+def join_comunidad(data):
+    comunidad = data.get("comunidad")
+    if comunidad:
+        join_room(comunidad)
+
 
 
 if __name__ == '__main__':
