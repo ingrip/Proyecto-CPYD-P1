@@ -11,67 +11,92 @@
 
 <style>
 
+/* VARIABLES DE COLOR */
+:root{
+--color-principal:#e9bec8;
+--color-secundario:#f0d4da;
+--color-hover:#e2aeb8;
+--color-fondo:#fff6f9;
+--color-boton:#ff7aa2;
+}
+
+/* BODY */
 body{
-    font-family:Poppins;
-    background:#fff6f9;
+font-family:Poppins;
+background:var(--color-fondo);
 }
 
 /* NAVBAR */
 .navbar-cute{
-    background: linear-gradient(135deg,#f0d4da,#e9bec8);
-    box-shadow:0 6px 20px rgba(0,0,0,.15);
-    padding:12px 0;
+background:linear-gradient(135deg,var(--color-secundario),var(--color-principal));
+box-shadow:0 6px 20px rgba(0,0,0,.15);
+padding:12px 0;
 }
 
 /* LOGO */
 .navbar-brand{
-    font-weight:600;
-    font-size:22px;
-    letter-spacing:.5px;
+font-weight:600;
+font-size:22px;
+letter-spacing:.5px;
 }
 
 /* LINKS */
 .navbar .nav-link{
-    color:white !important;
-    font-weight:500;
-    margin-right:10px;
-    transition:all .25s;
-    border-radius:12px;
-    padding:8px 14px;
+color:white !important;
+font-weight:500;
+margin-right:10px;
+transition:all .25s;
+border-radius:12px;
+padding:8px 14px;
 }
 
-/* hover links */
 .navbar .nav-link:hover{
-    background:rgba(255,255,255,.25);
-    transform:translateY(-2px);
+background:rgba(255,255,255,.25);
+transform:translateY(-2px);
 }
 
-/* boton login */
+/* BOTON LOGIN */
 .btn-login{
-    background:white;
-    color:#ff7aa2;
-    border-radius:25px;
-    padding:6px 18px;
-    font-weight:500;
-    transition:all .3s;
+background:white;
+color:var(--color-boton);
+border-radius:25px;
+padding:6px 18px;
+font-weight:500;
+transition:all .3s;
 }
 
-/* hover login */
 .btn-login:hover{
-    background:#ffe4ec;
-    color:#ff5c8d;
-    transform:scale(1.05);
+background:#ffe4ec;
+color:var(--color-boton);
+transform:scale(1.05);
 }
 
-/* dropdown cute */
+/* DROPDOWN */
 .dropdown-menu{
-    border:none;
-    border-radius:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,.15);
+border:none;
+border-radius:15px;
+box-shadow:0 10px 25px rgba(0,0,0,.15);
 }
 
 .dropdown-item:hover{
-    background:#ffe6ef;
+background:#ffe6ef;
+}
+
+/* SELECTOR DE COLOR */
+.color-picker{
+display:flex;
+align-items:center;
+gap:6px;
+margin-left:15px;
+color:white;
+}
+
+.color-picker input{
+width:35px;
+height:30px;
+border:none;
+background:none;
+cursor:pointer;
 }
 
 </style>
@@ -88,6 +113,12 @@ body{
 <img src="/static/logonav.png" alt="Logo" width="120" height="30" class="d-inline-block align-text-top">
 </a>
 
+<!-- selector color -->
+<div class="color-picker">
+<span id="abrirColor" style="cursor:pointer;font-size:20px;">🎨</span>
+<input type="color" id="colorTema" style="display:none;">
+</div>
+
 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContenido">
 <span class="navbar-toggler-icon"></span>
 </button>
@@ -97,11 +128,11 @@ body{
 <ul class="navbar-nav me-auto">
 
 <li class="nav-item">
-<a class="nav-link" href="/"> Inicio</a>
+<a class="nav-link" href="/">Inicio</a>
 </li>
 
 <li class="nav-item">
-    <a class="nav-link" href="/chat/general">Chat</a>
+<a class="nav-link" href="/chat/general">Chat</a>
 </li>
 
 </ul>
@@ -113,7 +144,7 @@ body{
 <li class="nav-item dropdown">
 
 <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
- {{session["usuario"]}}
+{{session["usuario"]}}
 </a>
 
 <ul class="dropdown-menu dropdown-menu-end">
@@ -132,7 +163,7 @@ Cerrar sesión
 
 <li class="nav-item">
 <a class="btn btn-login" href="/login">
- Iniciar sesión
+Iniciar sesión
 </a>
 </li>
 
@@ -152,6 +183,41 @@ Cerrar sesión
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+/* CAMBIAR COLOR DEL TEMA */
+
+const picker = document.getElementById("colorTema");
+
+function aplicarColor(color){
+
+document.documentElement.style.setProperty("--color-principal", color);
+document.documentElement.style.setProperty("--color-secundario", color + "aa");
+document.documentElement.style.setProperty("--color-hover", color);
+document.documentElement.style.setProperty("--color-boton", color);
+
+localStorage.setItem("temaColor", color);
+}
+
+picker.addEventListener("input", e=>{
+aplicarColor(e.target.value);
+});
+
+/* CARGAR COLOR GUARDADO */
+
+const guardado = localStorage.getItem("temaColor");
+
+if(guardado){
+aplicarColor(guardado);
+picker.value = guardado;
+}
+const abrirColor = document.getElementById("abrirColor");
+
+abrirColor.addEventListener("click", () => {
+    picker.click();
+});
+</script>
 
 </body>
 </html>
