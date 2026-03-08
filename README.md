@@ -19,24 +19,21 @@ Las siguientes instrucciones ayudarán en la ejecución del proyecto en tú máq
 
 
 # Backend
-```
+
 Python, Flask, Flask-socketIO
-```
 
 # Base de datos
-```
+
 Firebase Firestore
-```
 
 # Frontend
-```
+
 HTML, CSS, JavaScript  
-```
 
 # Liberías
-```
+
 Socket.IO, Firebase Auth (para login con Google)
-```
+
 
 
 ### Instalacion
@@ -111,5 +108,5 @@ http://localhost:5000
 
 * **Ingrid Yuliana Peréz Rpodríguez** - *367760* - [ingrip](https://github.com/ingrip)
 * **Hector Rodríguez Loya** - *363325* - []()
-* **Luis Arturo Herandez Castillo** - *367685* - []()
+* **Luis Arturo Herandez Castillo** - *367685* - [7lucas24](https://github.com/7lucas24)
 * **Jazmin  Cruz González** - *367770* - [JazCrz194](https://github.com/JazminCrz194)
