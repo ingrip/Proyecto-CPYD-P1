@@ -1,6 +1,8 @@
 from datetime import datetime
+from flask_socketio import leave_room
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit, join_room
+from flask import session, jsonify, request, redirect
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask import Flask, render_template, request
@@ -24,45 +26,50 @@ def index():
 def login():
     return render_template("login.html")
 
-@app.route('/comunidades')
-def comunidades():
-    return render_template("comunidades.html")
 
 @app.route('/chat/<comunidad>')
 def chat(comunidad):
+
+    if not session.get("uid"):
+        return redirect("/login")
+
     return render_template("chat.html", comunidad=comunidad)
-
-
 # recibir mensaje
 @socketio.on('mensaje')
 def handle_mensaje(data):
+
+    print("MENSAJE RECIBIDO:", data)
+
     now = datetime.now()
-    data['hora'] = now.strftime("%H:%M")
-    data['fecha'] = now.isoformat()
 
+    comunidad = data.get("comunidad")
     privado = data.get("privado", False)
-    usuarios_privados = data.get("usuarios", [])
 
-    # guardar en firestore
-    db.collection("mensajes").add({
+    if not privado and not comunidad:
+        print("MENSAJE SIN COMUNIDAD")
+        return
+
+    mensaje_doc = {
         "nombre": data['nombre'],
         "mensaje": data['mensaje'],
-        "hora": data['hora'],
-        "fecha": data['fecha'],
-        "uid": data.get("uid"),
-        "comunidad": data.get("comunidad"),
+        "hora": now.strftime("%H:%M"),
+        "fecha": now.isoformat(),
+        "uid": data["uid"], 
+        "comunidad": comunidad if not privado else None,
         "privado": privado,
-        "usuarios": usuarios_privados
-    })
+        "usuarios": data.get("usuarios", [])
+    }
+
+    db.collection("mensajes").add(mensaje_doc)
+
+    data["hora"] = mensaje_doc["hora"]
+    data["fecha"] = mensaje_doc["fecha"]
 
     if privado:
-        # emitir solo a los usuarios privados
-        for uid in usuarios_privados:
-            join_room(uid)  # asegurar que estén en la sala
+        for uid in mensaje_doc["usuarios"]:
             socketio.emit("message", data, room=uid)
     else:
-        socketio.emit("message", data, to=data["comunidad"])
-
+        socketio.emit("message", data, room=comunidad)
 
 # cargar historial
 @socketio.on('cargar_historial')
@@ -131,8 +138,25 @@ def join_comunidad(data):
     comunidad = data.get("comunidad")
     if comunidad:
         join_room(comunidad)
+@app.route("/crear_sesion", methods=["POST"])
+def crear_sesion():
 
+    data = request.json
 
+    session["usuario"] = data["nombre"]
+    session["uid"] = data["uid"]
+    session["foto"] = data["foto"]
 
+    return jsonify({"ok": True})
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+@socketio.on("leave_comunidad")
+def leave_comunidad(data):
+    comunidad = data.get("comunidad")
+    if comunidad:
+        leave_room(comunidad)
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
