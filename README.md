@@ -111,5 +111,5 @@ http://localhost:5000
 
 * **Ingrid Yuliana Peréz Rpodríguez** - *367760* - [ingrip](https://github.com/ingrip)
 * **Hector Rodríguez Loya** - *363325* - []()
-* **Luis Arturo Herandez Castillo** - *367685* - []()
+* **Luis Arturo Herandez Castillo** - *367685* - [7lucas24](https://github.com/7lucas24)
 * **Jazmin  Cruz González** - *367770* - [JazCrz194](https://github.com/JazminCrz194)
