@@ -19,24 +19,21 @@ Las siguientes instrucciones ayudarán en la ejecución del proyecto en tú máq
 
 
 # Backend
-```
+
 Python, Flask, Flask-socketIO
-```
 
 # Base de datos
-```
+
 Firebase Firestore
-```
 
 # Frontend
-```
+
 HTML, CSS, JavaScript  
-```
 
 # Liberías
-```
+
 Socket.IO, Firebase Auth (para login con Google)
-```
+
 
 
 ### Instalacion
