@@ -63,10 +63,20 @@ nombre:user.displayName,
 foto:user.photoURL,
 uid:user.uid
 };
-
 localStorage.setItem("usuario",JSON.stringify(usuario));
 
-window.location="/comunidades";
+fetch("/crear_sesion",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(usuario)
+})
+.then(()=>{
+
+window.location="/chat/general";
+
+});
 
 })
 .catch(err=>alert(err.message));
