@@ -114,7 +114,6 @@ def cargar_historial(data):
 
 
 # unirse a sala
-
 @socketio.on('join')
 def join(data):
     uid = data.get("uid")
